@@ -3,6 +3,8 @@ const asyncHandler = (requestHandler) => {
     Promise.resolve(requestHandler(req, res, next)).catch((err) => next(err));
   };
 };
+
+export { asyncHandler };
 // function asyncHandler(fun) {
 //   return async function (req, res, next) {
 //     try {
