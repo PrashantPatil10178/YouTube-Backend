@@ -27,4 +27,6 @@ app.use("/api/v1/users", userRouter);
 //Address of this route becomes
 // http://localhost:8000/api/v1/users/register
 
+app.use("/api/v1/login", userRouter);
+
 export { app };
