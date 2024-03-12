@@ -7,16 +7,18 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
+    console.log(user);
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generatRefereshTokens();
-    user.refreshToken = refreshToken;
+    const refreshtoken = user.generateRefreshToken();
+    user.refreshToken = refreshtoken;
     await user.save({ validateBeforeSave: false });
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshtoken };
   } catch (error) {
     throw new ApiError(
       500,
-      "Something Went Wrong While Generating Refresh and Access Token"
+      "Something Went Wrong While Generating Refresh and Access Token",
+      error
     );
   }
 };
@@ -114,7 +116,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const { email, username, password } = req.body;
 
-  if (!email || !username) {
+  if (!(username || email)) {
     throw new ApiError(400, "UserName or Password is required");
   }
 
@@ -128,7 +130,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const isPasswordValid = await user.isPasswordCorrect(password);
 
-  if (isPasswordValid) {
+  if (!isPasswordValid) {
     throw new ApiError(401, "Invalid User Credentials");
   }
 
@@ -144,7 +146,7 @@ const loginUser = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
   };
-
+  console.log(loggedInUser.username);
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
@@ -153,11 +155,9 @@ const loginUser = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {
-          user: loggedInUser,
-          accessToken,
-          refreshToken,
+          refreshtoken: refreshToken,
         },
-        "User Logged in sucessfully"
+        "User logged In Successfully"
       )
     );
 });
