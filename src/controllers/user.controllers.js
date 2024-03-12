@@ -7,9 +7,10 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
-    console.log(user);
+
     const accessToken = user.generateAccessToken();
     const refreshtoken = user.generateRefreshToken();
+
     user.refreshToken = refreshtoken;
     await user.save({ validateBeforeSave: false });
 
@@ -134,28 +135,31 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid User Credentials");
   }
 
-  const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
+  const { accessToken, refreshtoken } = await generateAccessAndRefereshTokens(
     user._id
   );
 
-  const loggedInUser = User.findById(user._id).select(
-    "-password -refreshToken"
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshtoken"
   );
 
   const options = {
     httpOnly: true,
     secure: true,
   };
-  console.log(loggedInUser.username);
+
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
-    .cookie("RefereshToken", refreshToken, options)
+    .cookie("refreshToken", refreshtoken, options)
     .json(
       new ApiResponse(
         200,
+        200,
         {
-          refreshtoken: refreshToken,
+          loggedInUser,
+          accessToken,
+          refreshtoken,
         },
         "User logged In Successfully"
       )
@@ -163,11 +167,12 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
-  User.findByIdAndUpdate(
+  console.log(req);
+  await User.findByIdAndUpdate(
     req.user._id,
     {
       $set: {
-        refreshToken: undefined,
+        refreshToken: 1,
       },
     },
     {
