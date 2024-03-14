@@ -4,6 +4,9 @@ import { User } from "../db/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+import jwt from "jsonwebtoken";
+import { restart } from "nodemon";
+
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
@@ -192,4 +195,153 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged Out"));
 });
 
-export { registerUser, loginUser, logoutUser };
+const refeshAccessToken = asyncHandler(async (req, res) => {
+  try {
+    const incomingRefreshToken =
+      req.cookies.refreshToken || req.body.refreshToken;
+    if (!incomingRefreshToken) {
+      throw new ApiError(401, "Unauthorized Request");
+    }
+
+    const decoded = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+    const user = await User.findById(decoded?._id);
+    if (!user) {
+      throw (new ApiError(401), "Invalid Refresh Token ");
+    }
+
+    if (incomingRefreshToken !== user?.refreshToken) {
+      throw (new ApiError(401), "Invalid Refresh Token ");
+    }
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { accessToken, refreshtoken } = await generateAccessAndRefereshTokens(
+      user._id
+    );
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken)
+      .cookie("refreshToken", refreshtoken)
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshtoken },
+          "Access token refreshed"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid Refresh token");
+  }
+});
+
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldpass, newpass } = req.body;
+  const user = await User.findById(req.user?._id);
+  const isPasswordCorrect = await user.isPasswordCorrect(oldpass);
+  if (!isPasswordCorrect) {
+    throw new ApiError(400, "Invalid Old Password");
+  }
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res.status((200).json(new ApiResponse(200, {}, "Password Changed ")));
+});
+
+const getUser = asyncHandler(async (req, res) => {
+  return res.status(200).json(
+    200,
+    {
+      user: req.user,
+    },
+    "This is a Current Logged in User"
+  );
+});
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+
+  if (!fullName || !email) {
+    throw new ApiError(400, "All Fields Are Required");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullName,
+        email,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated Sucessfuly"));
+});
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  const avatar = req.file?.path;
+  if (!avatar) {
+    throw new ApiError(400, "Avatar File is missing");
+  }
+  const avatarUpdate = await uploadOnCloudinary(avatar);
+  if (!avatarUpdate.url) {
+    throw new ApiError(400, "Error While Uploading On Avatar");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatarUpdate.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar Updated Sucessfully"));
+});
+
+const updateUsercoverImage = asyncHandler(async (req, res) => {
+  const coverImage = req.file?.path;
+  if (!coverImage) {
+    throw new ApiError(400, "Avatar File is missing");
+  }
+  const coverImageUpdate = await uploadOnCloudinary(coverImage);
+  if (!coverImageUpdate.url) {
+    throw new ApiError(400, "Error While Uploading On Avatar");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: coverImageUpdate.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar Updated Sucessfully"));
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refeshAccessToken,
+  getUser,
+  changeCurrentPassword,
+  updateAccountDetails,
+  updateUserAvatar,
+};
