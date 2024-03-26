@@ -5,7 +5,6 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 import jwt from "jsonwebtoken";
-import { restart } from "nodemon";
 
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
@@ -47,7 +46,7 @@ const registerUser = asyncHandler(async function (req, res) {
     throw new ApiError(400, "All fields are required");
   }
 
-  const existedUser = await User.findOne({
+  const existedUser = await User.find({
     $or: [{ username }, { email }],
   });
 
@@ -367,7 +366,15 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     {
       $addFields: {
         subscribersCount: {
-          $size: "$subscri",
+          $size: "$subscribers",
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+          },
         },
       },
     },
