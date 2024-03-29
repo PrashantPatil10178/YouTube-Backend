@@ -243,14 +243,16 @@ const refeshAccessToken = asyncHandler(async (req, res) => {
 const changeCurrentPassword = asyncHandler(async (req, res) => {
   const { oldpass, newpass } = req.body;
   const user = await User.findById(req.user?._id);
+  console.log(oldpass, newpass);
   const isPasswordCorrect = await user.isPasswordCorrect(oldpass);
+  console.log(isPasswordCorrect);
   if (!isPasswordCorrect) {
     throw new ApiError(400, "Invalid Old Password");
   }
-  user.password = newPassword;
+  user.password = newpass;
   await user.save({ validateBeforeSave: false });
 
-  return res.status((200).json(new ApiResponse(200, {}, "Password Changed ")));
+  return res.status(200).json(new ApiResponse(200, {}, "Password Changed "));
 });
 
 const getUser = asyncHandler(async (req, res) => {
@@ -452,4 +454,5 @@ export {
   updateUserAvatar,
   updateUsercoverImage,
   getUserChannelProfile,
+  getWatchHistory,
 };

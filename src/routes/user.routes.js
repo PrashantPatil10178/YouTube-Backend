@@ -6,6 +6,10 @@ import {
   refeshAccessToken,
   changeCurrentPassword,
   getUserChannelProfile,
+  updateAccountDetails,
+  updateUserAvatar,
+  updateUsercoverImage,
+  getWatchHistory,
 } from "../controllers/user.controllers.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -33,7 +37,20 @@ router.route("/login").post(loginUser);
 router.route("/logout").post(verifyJWT, logoutUser);
 router.route("/refresh-token").post(refeshAccessToken);
 
-router.route("/change-password"), post(verifyJWT, changeCurrentPassword);
-router.router("/current-user").get(verifyJWT, getUserChannelProfile);
+router.route("/change-password").post(verifyJWT, changeCurrentPassword);
+router.route("/current-user").get(verifyJWT, getUserChannelProfile);
+router.route("/update-account").patch(verifyJWT, updateAccountDetails);
+
+router
+  .route("/avatar")
+  .patch(verifyJWT, upload.single("avatar"), updateUserAvatar);
+
+router
+  .route("/cover-Image")
+  .patch(verifyJWT, upload.single("/coverImage"), updateUsercoverImage);
+
+router.route("/c/:username").get(verifyJWT, getUserChannelProfile);
+
+router.route("/history").get(verifyJWT, getWatchHistory);
 
 export default router;
